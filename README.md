@@ -49,7 +49,3 @@ Ia_Estacionamento/
 - **Fontes:** Inter + JetBrains Mono (Google Fonts)
 
 ---
-
-## 👤 Autor
-
-**SIgorSs** — [github.com/SIgorSs](https://github.com/SIgorSs)
