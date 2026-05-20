@@ -25,8 +25,36 @@ Ia_Estacionamento/
 ├── index.html   # Estrutura da interface
 ├── style.css    # Design system (dark mode, glassmorphism)
 ├── app.js       # Lógica da aplicação e simulação de IA
+├── backend/      # API Python que chama o modelo treinado
+├── Detector_Vagas/ # Repositório clonado com o peso treinado e scripts originais
 └── README.md
 ```
+
+## 🔌 Integração com o detector real
+
+O front-end agora pode consumir a API local em `http://127.0.0.1:8000/analyze`.
+
+O backend em `backend/app.py` carrega o peso treinado em:
+
+`Detector_Vagas/best_models/best/best-modelo-universal5v4.pt`
+
+### Como executar
+
+1. Abra um terminal na pasta do projeto.
+2. Instale as dependências do backend com `py -m pip install -r backend/requirements.txt`.
+3. Inicie a API com `py backend/app.py` e mantenha esse terminal aberto.
+4. Em outro terminal, abra `index.html` no navegador ou use um servidor local da sua preferência.
+5. Faça upload de uma imagem ou vídeo.
+6. Clique em **Analisar com IA**.
+7. Se quiser confirmar que o backend subiu corretamente, acesse `http://127.0.0.1:8000/health` no navegador.
+
+Se a API não estiver ativa, a interface usa a simulação local como fallback.
+
+### Observações práticas
+
+- No Windows deste ambiente, o comando `python` não está disponível no PATH, mas o launcher `py` funciona.
+- O backend já aponta para o peso treinado em `Detector_Vagas/best_models/best/best-modelo-universal5v4.pt`.
+- O fluxo atual analisa a imagem enviada e, para vídeo, captura um frame para inferência. Se você quiser processamento do vídeo inteiro, isso precisa de uma rota extra no backend.
 
 ---
 

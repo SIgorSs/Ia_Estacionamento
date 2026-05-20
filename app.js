@@ -1,5 +1,7 @@
 'use strict';
 
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
 // ─── STATE ─────────────────────────────────────────────
 const STATE = {
   totalSpots: 40,
@@ -13,6 +15,7 @@ const STATE = {
   loadedMedia: null,   // { type:'image'|'video', file, url, el }
   lastResult: null,    // last detection result
   showAnnotated: true,
+  backendOnline: null, // null = verificando, true = online, false = offline
 };
 
 // ─── DOM HELPERS ───────────────────────────────────────
@@ -440,9 +443,23 @@ async function runAnalysis() {
     await new Promise(r => { if(sourceEl.complete) r(); else sourceEl.addEventListener('load', r); });
   }
 
-  const result = buildDetectionResult(sourceEl);
+  let result;
+  try {
+    const apiResult = await analyzeMediaWithApi(STATE.loadedMedia.file, isVideo ? 'video' : 'image');
+    result = normalizeApiResult(apiResult, sourceEl);
+  } catch (error) {
+    console.warn('API de detecção indisponível, usando fallback local.', error);
+    result = buildDetectionResult(sourceEl);
+    showToast('Backend não encontrado. Usando simulação local.', 'warning', '⚠');
+  }
+
   STATE.lastResult = result;
   STATE.imgsProcessed++;
+
+  // Fix 4: Atualiza totalSpots com o número real de vagas detectadas
+  if (result.detections.length > 0) {
+    STATE.totalSpots = result.detections.length;
+  }
 
   // Apply result to spots
   applyDetectionToSpots(result.detections);
@@ -476,6 +493,57 @@ async function runAnalysis() {
   showToast(`Análise concluída! ${freeCount} livres · ${occCount} ocupadas`, 'success', '🔍');
 }
 
+async function analyzeMediaWithApi(file, mediaType) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('mediaType', mediaType);
+
+  const response = await fetch(`${API_BASE_URL}/analyze`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Erro na API (${response.status})`);
+  }
+
+  return response.json();
+}
+
+function normalizeApiResult(apiResult, sourceEl) {
+  return {
+    imageEl: sourceEl,
+    origW: apiResult.imageWidth || sourceEl.naturalWidth || sourceEl.width || 640,
+    origH: apiResult.imageHeight || sourceEl.naturalHeight || sourceEl.height || 360,
+    detections: Array.isArray(apiResult.detections) ? apiResult.detections : [],
+    avgConf: typeof apiResult.avgConf === 'number' ? apiResult.avgConf : 0,
+  };
+}
+
+// Fix 6: Verifica se o backend está online e atualiza o badge na interface
+async function checkBackendHealth() {
+  const badge = $('#backend-status-badge');
+  if (badge) { badge.textContent = '● Verificando...'; badge.className = 'backend-badge checking'; }
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      STATE.backendOnline = true;
+      if (badge) { badge.textContent = '● Backend Online'; badge.className = 'backend-badge online'; }
+      showToast(`Backend conectado — modelo ${data.model || 'YOLO'} pronto!`, 'success', '🤖');
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch {
+    STATE.backendOnline = false;
+    if (badge) { badge.textContent = '● Backend Offline'; badge.className = 'backend-badge offline'; }
+    console.warn('[ParkVision] Backend indisponível em', API_BASE_URL, '— usando simulação local.');
+  }
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function captureFrameToImg(videoEl) {
@@ -489,17 +557,39 @@ async function captureFrameToImg(videoEl) {
   return img;
 }
 
+// Fix 3: Converte frame do vídeo para File real (JPEG), garantindo que o
+// backend receba uma imagem — não o arquivo de vídeo original.
 function captureVideoFrame(videoEl) {
-  captureFrameToImg(videoEl).then(img => {
-    const previewWrap = $('#preview-wrap');
-    previewWrap.innerHTML = '';
-    previewWrap.appendChild(img);
+  const c = document.createElement('canvas');
+  c.width  = videoEl.videoWidth  || 640;
+  c.height = videoEl.videoHeight || 360;
+  c.getContext('2d').drawImage(videoEl, 0, 0);
+
+  c.toBlob(blob => {
+    const frameFile = new File([blob], 'frame_capturado.jpg', { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.src = url;
     img.style.width = '100%';
-    STATE.loadedMedia.type = 'image';
-    STATE.loadedMedia.el   = img;
-    $('#frame-card').classList.add('hidden');
-    showToast('Frame capturado! Clique em Analisar com IA.', 'info', '📸');
-  });
+    img.onload = () => {
+      const previewWrap = $('#preview-wrap');
+      previewWrap.innerHTML = '';
+      previewWrap.appendChild(img);
+
+      // Libera URL do vídeo original e substitui tudo pelo frame capturado
+      if (STATE.loadedMedia?.url) URL.revokeObjectURL(STATE.loadedMedia.url);
+      STATE.loadedMedia.type = 'image';
+      STATE.loadedMedia.el   = img;
+      STATE.loadedMedia.file = frameFile;  // <-- arquivo correto para o FormData
+      STATE.loadedMedia.url  = url;
+
+      $('#preview-filename').textContent = 'frame_capturado.jpg';
+      $('#preview-meta').textContent = `image/jpeg  ·  ${(blob.size / 1024).toFixed(1)} KB`;
+      $('#frame-card').classList.add('hidden');
+      showToast('Frame capturado! Clique em Analisar com IA.', 'info', '📸');
+    };
+  }, 'image/jpeg', 0.92);
 }
 
 // ─── SIMULATED DETECTION ──────────────────────────────
@@ -537,11 +627,19 @@ function buildDetectionResult(imgEl) {
   return { imageEl: imgEl, origW: W, origH: H, detections, avgConf };
 }
 
+// Fix 5: Reconstrói o grid inteiro a partir das detecções reais da API,
+// em vez de tentar mapear por índice sobre um array de tamanho fixo.
 function applyDetectionToSpots(detections) {
-  detections.forEach(d => {
-    const spot = STATE.spots[d.id - 1];
-    if (spot) spot.state = d.state;
-  });
+  if (detections.length === 0) return;
+
+  STATE.spots = detections.map((d, i) => ({
+    id:    i + 1,
+    state: d.state === 'free' ? 'free' : 'occupied',
+  }));
+
+  // Garante que STATE.totalSpots está sincronizado
+  STATE.totalSpots = STATE.spots.length;
+
   renderParkingGrid();
 }
 
@@ -853,6 +951,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateKPIs();
   setTimeout(()=>renderBarChart('today'),100);
   requestAnimationFrame(mainLoop);
+
+  // Fix 6: Verifica conexão com o backend ao iniciar
+  checkBackendHealth();
 
   setTimeout(()=>showToast('ParkVision AI iniciado — pronto para análise de imagens e vídeos 🚗','success','✓'),600);
 });
