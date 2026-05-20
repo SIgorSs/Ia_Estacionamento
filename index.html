@@ -46,6 +46,14 @@
         <span>Análise de Mídia</span>
       </a>
 
+      <a href="#" class="nav-item" data-page="camera" id="nav-camera">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span>Câmera ao Vivo</span>
+      </a>
+
       <a href="#" class="nav-item" data-page="map" id="nav-map">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
@@ -477,6 +485,30 @@
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- PAGE: LIVE CAM -->
+     <div class="page" id="page-camera">
+      <div class="card result-card" style="max-width: 900px; margin: 0 auto;">
+        <div class="card-header">
+          <h2 class="card-title">Monitoramento em Tempo Real</h2>
+          <button class="btn-analyze" id="btn-toggle-camera" style="padding: 8px 16px; font-size: 13px;">
+            ▶ Iniciar Câmera
+          </button>
+        </div>
+        
+        <div class="result-canvas-wrap" style="display: flex; justify-content: center; background: #050c1a; min-height: 400px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); overflow: hidden;">
+          <img id="live-camera-feed" src="" style="width: 100%; max-height: 600px; object-fit: contain; display: none;" alt="Câmera ao vivo" />
+          
+          <div id="camera-offline-msg" style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 14px;">
+            <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" opacity="0.4">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <line x1="2" y1="2" x2="22" y2="22"/>
+            </svg>
+            <p>Câmera desativada.<br>Clique em <strong>Iniciar Câmera</strong> para abrir o feed de vídeo.</p>
+          </div>
+        </div>
       </div>
     </div>
 

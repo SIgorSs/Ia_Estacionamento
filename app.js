@@ -54,6 +54,7 @@ function switchPage(page) {
   const titles = {
     dashboard: ['Dashboard',        'Monitoramento em tempo real'],
     analysis:  ['Análise de Mídia', 'Upload de imagens e vídeos para detecção'],
+    camera:    ['Câmera ao Vivo',   'Detecção em tempo real via stream (MJPEG)'],
     map:       ['Mapa Completo',    'Visualização do complexo'],
     history:   ['Histórico',        'Log de análises realizadas'],
     settings:  ['Configurações',    'Parâmetros do sistema'],
@@ -644,7 +645,7 @@ function applyDetectionToSpots(detections) {
 }
 
 // ─── DRAW ON RESULT CANVAS ─────────────────────────────
-function drawResultAnnotated(result) {
+function drawResultAnnotated(result, hoverId = null) {
   const canvas = $('#result-canvas'); if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const img = result.imageEl;
@@ -653,23 +654,53 @@ function drawResultAnnotated(result) {
 
   ctx.drawImage(img, 0, 0);
 
+  // Se houver qualquer ID em foco (por hover ou clique), escurece a imagem de fundo
+  if (hoverId !== null) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   result.detections.forEach(d => {
+    const isHovered = hoverId === d.id;
+    const isDimmed = hoverId !== null && !isHovered;
+
     const x=d.x, y=d.y, w=d.w, h=d.h;
-    const color = d.state==='free' ? '#36e09a' : '#f75f6f';
-    const bgColor = d.state==='free' ? 'rgba(54,224,154,0.12)' : 'rgba(247,95,111,0.12)';
+    
+    let color = d.state==='free' ? '#36e09a' : '#f75f6f';
+    let bgColor = d.state==='free' ? 'rgba(54,224,154,0.12)' : 'rgba(247,95,111,0.12)';
+    let bgLabel = 'rgba(0,0,0,0.75)';
+
+    // Comportamento para as vagas não selecionadas
+    if (isDimmed) {
+      color = d.state==='free' ? 'rgba(54,224,154,0.15)' : 'rgba(247,95,111,0.15)';
+      bgColor = 'transparent';
+      bgLabel = 'rgba(0,0,0,0.3)';
+    }
+    
+    // Comportamento para a vaga em foco (Holofote)
+    if (isHovered) {
+      bgColor = d.state==='free' ? 'rgba(54,224,154,0.45)' : 'rgba(247,95,111,0.45)';
+    }
 
     ctx.fillStyle = bgColor;
     ctx.fillRect(x, y, w, h);
 
     ctx.strokeStyle = color;
-    ctx.lineWidth   = 2.5;
+    ctx.lineWidth   = isHovered ? 4 : 2.5;
     ctx.strokeRect(x, y, w, h);
 
-    // Label background
-    const label = `${d.state==='free'?'LIVRE':'OCUPADO'} ${(d.conf*100).toFixed(0)}%`;
+    // Contorno sólido branco adicional para destacar a vaga focada do fundo escuro
+    if (isHovered) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 3, y - 3, w + 6, h + 6);
+    }
+
+    const label = `#${d.id} ${d.state==='free'?'LIVRE':'OCUPADO'} ${(d.conf*100).toFixed(0)}%`;
     ctx.font = 'bold 11px JetBrains Mono, monospace';
     const tw = ctx.measureText(label).width;
-    ctx.fillStyle = 'rgba(0,0,0,0.75)';
+    
+    ctx.fillStyle = bgLabel;
     ctx.fillRect(x, y-18, tw+8, 16);
 
     ctx.fillStyle = color;
@@ -698,13 +729,56 @@ function showDetectionSummary(result) {
 
   const tbody = $('#det-list-body');
   tbody.innerHTML = '';
+  
+  // Inicializa a propriedade de controle no STATE caso ela não exista
+  if (STATE.focusedSpotId === undefined) {
+    STATE.focusedSpotId = null;
+  }
+
   result.detections.forEach(d => {
     const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.style.transition = 'background-color 0.2s ease';
+    
+    // Mantém a linha destacada caso a tabela seja re-renderizada
+    if (STATE.focusedSpotId === d.id) {
+      tr.style.backgroundColor = 'rgba(79, 142, 247, 0.15)';
+    }
+
     tr.innerHTML = `
       <td>${d.id}</td>
       <td><span class="status-pill ${d.state}">${d.state==='free'?'Livre':'Ocupada'}</span></td>
       <td style="color:${d.conf>0.9?'var(--accent-green)':'var(--accent-amber)'}">${(d.conf*100).toFixed(1)}%</td>
       <td>${Math.round(d.x)}, ${Math.round(d.y)}</td>`;
+    
+    // 1. EVENTO DE HOVER (Foco temporário)
+    tr.addEventListener('mouseenter', () => {
+      drawResultAnnotated(result, d.id);
+    });
+    
+    // 2. EVENTO DE MOUSELEAVE (Retorno ao estado anterior)
+    tr.addEventListener('mouseleave', () => {
+      // Quando o mouse sai da linha, volta o foco para a vaga fixada no clique (que pode ser null)
+      drawResultAnnotated(result, STATE.focusedSpotId);
+    });
+    
+    // 3. EVENTO DE CLIQUE (Foco fixo / Lock)
+    tr.addEventListener('click', () => {
+      if (STATE.focusedSpotId === d.id) {
+        STATE.focusedSpotId = null;
+        tr.style.backgroundColor = '';
+      } else {
+        // Limpa o fundo de todas as outras linhas da tabela antes de focar a nova
+        [...tbody.children].forEach(row => row.style.backgroundColor = '');
+        
+        // Define o novo ID em foco e pinta o fundo da linha selecionada
+        STATE.focusedSpotId = d.id;
+        tr.style.backgroundColor = 'rgba(79, 142, 247, 0.15)';
+      }
+      // Força a atualização do desenho do Canvas imediatamente após o clique
+      drawResultAnnotated(result, STATE.focusedSpotId);
+    });
+
     tbody.appendChild(tr);
   });
 }
@@ -934,6 +1008,40 @@ function mainLoop(ts) {
   requestAnimationFrame(mainLoop);
 }
 
+// ─── CAMERA PAGE ───────────────────────────────────────
+function initCameraPage() {
+  const btnToggle = $('#btn-toggle-camera');
+  const imgFeed = $('#live-camera-feed');
+  const msgOffline = $('#camera-offline-msg');
+  let isCameraActive = false;
+
+  if (!btnToggle) return;
+
+  btnToggle.addEventListener('click', () => {
+    if (!isCameraActive) {
+      // LIGA A CÂMERA: Aponta a tag img para o gerador de vídeo do Python
+      imgFeed.src = `${API_BASE_URL}/video_feed`;
+      imgFeed.style.display = 'block';
+      msgOffline.style.display = 'none';
+      
+      btnToggle.innerHTML = '⏹ Desligar Câmera';
+      btnToggle.style.background = 'var(--accent-red)';
+      isCameraActive = true;
+      showToast('Câmera ativada. Inicializando modelo de IA...', 'info', '🎥');
+    } else {
+      // DESLIGA A CÂMERA: Remove a rota para interromper o processamento no Python
+      imgFeed.src = '';
+      imgFeed.style.display = 'none';
+      msgOffline.style.display = 'flex';
+      
+      btnToggle.innerHTML = '▶ Iniciar Câmera';
+      btnToggle.style.background = '';
+      isCameraActive = false;
+      showToast('Câmera desativada com segurança.', 'success', '✓');
+    }
+  });
+}
+
 // ─── BOOTSTRAP ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initSpots();
@@ -944,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initRefreshButton();
   initNotifButton();
   initAnalysisPage();
+  initCameraPage();
   createToastContainer();
   seedActivities();
 

@@ -7,6 +7,7 @@ echo   ParkVision AI — Iniciando servidor backend
 echo  ================================================
 echo.
 
+python -m venv .venv
 :: Ativa o ambiente virtual
 call "%~dp0.venv\Scripts\activate.bat"
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from statistics import mean
 
 import cv2
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, Response
 from flask_cors import CORS
 from ultralytics import YOLO
 
@@ -78,6 +78,9 @@ def _image_dimensions(result) -> tuple[int, int]:
 
     return 0, 0
 
+@app.get("/")
+def home():
+    return jsonify({"message": "API do ParkVision AI está ativa e operacional!"})
 
 @app.get("/health")
 def health():
@@ -130,6 +133,39 @@ def analyze():
         except OSError:
             pass
 
+# LIVE rota
+def generate_frames():
+    caminho_video = str(BASE_DIR / "video_teste1.mp4")
+    camera = cv2.VideoCapture(caminho_video) 
+    
+    while True:
+        success, frame = camera.read()
+        
+        # LÓGICA DE LOOP: Se o vídeo acabar, rebobina para o frame 0 e continua
+        if not success:
+            camera.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            continue
+            
+        # 1. A IA analisa o frame atual do vídeo
+        results = model.predict(source=frame, conf=0.5, verbose=False)
+        
+        # 2. O próprio YOLO desenha as caixas no frame
+        annotated_frame = results[0].plot() 
+        
+        # 3. Converte a matriz de imagem para JPEG na memória
+        ret, buffer = cv2.imencode('.jpg', annotated_frame)
+        frame_bytes = buffer.tobytes()
+        
+        # 4. Entrega o frame para o HTML e volta para o próximo
+        yield (b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            
+    camera.release()
+
+@app.route('/video_feed')
+def video_feed():
+    # Retorna o fluxo contínuo como um multipart (MJPEG)
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000, debug=True)
