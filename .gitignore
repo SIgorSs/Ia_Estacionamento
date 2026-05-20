@@ -1,0 +1,39 @@
+# Logs e cache
+*.log
+*.tmp
+*.temp
+
+# Node (caso use no futuro)
+node_modules/
+dist/
+.env
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python (para quando integrar o modelo)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Modelos e dados grandes
+*.pt
+*.pth
+*.onnx
+*.h5
+datasets/
+runs/

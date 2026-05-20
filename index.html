@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParkVision AI – Monitoramento Inteligente de Estacionamento</title>
+  <meta name="description" content="Sistema de inteligência artificial para detecção de vagas de estacionamento via análise de imagens e vídeos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="2" y="2" width="10" height="10" rx="2" fill="var(--accent-green)" opacity="0.9"/>
+          <rect x="16" y="2" width="10" height="10" rx="2" fill="var(--accent-red)" opacity="0.9"/>
+          <rect x="2" y="16" width="10" height="10" rx="2" fill="var(--accent-red)" opacity="0.9"/>
+          <rect x="16" y="16" width="10" height="10" rx="2" fill="var(--accent-green)" opacity="0.9"/>
+        </svg>
+      </div>
+      <span class="logo-text">ParkVision<span class="logo-ai">AI</span></span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="#" class="nav-item" data-page="analysis" id="nav-analysis">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>Análise de Mídia</span>
+      </a>
+
+      <a href="#" class="nav-item" data-page="map" id="nav-map">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+          <line x1="9" y1="3" x2="9" y2="18"/>
+          <line x1="15" y1="6" x2="15" y2="21"/>
+        </svg>
+        <span>Mapa</span>
+      </a>
+
+      <a href="#" class="nav-item" data-page="history" id="nav-history">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <span>Histórico</span>
+      </a>
+
+      <a href="#" class="nav-item" data-page="settings" id="nav-settings">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/>
+        </svg>
+        <span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-status">
+      <div class="status-dot online"></div>
+      <span>Sistema Online</span>
+    </div>
+  </aside>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="page-title">
+          <h1 id="page-heading">Dashboard</h1>
+          <span class="page-subtitle">Monitoramento em tempo real</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="scan-badge" id="scan-badge">
+          <span class="scan-dot"></span>
+          <span>Analisando...</span>
+        </div>
+        <div class="datetime-display" id="datetime-display"></div>
+        <button class="btn-icon" aria-label="Notificações" id="notif-btn">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+          <span class="notif-badge" id="notif-badge">3</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== PAGE: DASHBOARD ===== -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- KPI Cards -->
+      <section class="kpi-grid" aria-label="Indicadores de vagas">
+        <div class="kpi-card kpi-total">
+          <div class="kpi-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Total de Vagas</span>
+            <span class="kpi-value" id="kpi-total">40</span>
+          </div>
+          <div class="kpi-trend neutral">100%</div>
+        </div>
+
+        <div class="kpi-card kpi-available">
+          <div class="kpi-icon green">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Disponíveis</span>
+            <span class="kpi-value" id="kpi-free">--</span>
+          </div>
+          <div class="kpi-trend up" id="kpi-free-pct">--%</div>
+        </div>
+
+        <div class="kpi-card kpi-occupied">
+          <div class="kpi-icon red">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Ocupadas</span>
+            <span class="kpi-value" id="kpi-occ">--</span>
+          </div>
+          <div class="kpi-trend down" id="kpi-occ-pct">--%</div>
+        </div>
+
+        <div class="kpi-card kpi-confidence">
+          <div class="kpi-icon amber">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-label">Confiança IA</span>
+            <span class="kpi-value" id="kpi-conf">97.4%</span>
+          </div>
+          <div class="kpi-trend up">↑ Alta</div>
+        </div>
+      </section>
+
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
+
+        <!-- Parking Lot Map -->
+        <section class="card lot-card" aria-label="Mapa do estacionamento">
+          <div class="card-header">
+            <h2 class="card-title">Mapa do Estacionamento</h2>
+            <div class="card-actions">
+              <button class="btn-pill active" id="view-grid">Grade</button>
+              <button class="btn-pill" id="view-img">Imagem</button>
+              <button class="btn-sm" id="btn-refresh" aria-label="Atualizar">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="lot-view" id="lot-view">
+            <!-- Grid view -->
+            <div class="lot-grid-view" id="lot-grid-view">
+              <div class="lot-legend">
+                <span><span class="legend-dot green"></span> Disponível</span>
+                <span><span class="legend-dot red"></span> Ocupada</span>
+                <span><span class="legend-dot yellow"></span> Detectando</span>
+              </div>
+              <div class="lot-road"></div>
+              <div class="parking-grid" id="parking-grid" role="grid" aria-label="Grade de vagas"></div>
+              <div class="lot-road"></div>
+              <div class="lot-entry">
+                <span class="entry-label">ENTRADA / SAÍDA</span>
+                <div class="entry-arrows">
+                  <div class="arrow-in">→</div>
+                  <div class="arrow-out">←</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Image overlay view -->
+            <div class="lot-image-view hidden" id="lot-image-view">
+              <div class="img-analysis-frame">
+                <canvas id="dash-img-canvas" width="640" height="360"></canvas>
+                <div class="img-hud">
+                  <span class="hud-item">Última análise</span>
+                  <span class="hud-item" id="dash-last-scan">—</span>
+                </div>
+                <div class="detection-boxes" id="detection-boxes"></div>
+                <div class="img-no-file hidden" id="img-no-file">
+                  <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" opacity="0.4">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <p>Nenhuma imagem analisada ainda.<br>Vá para <strong>Análise de Mídia</strong> para fazer upload.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+          <!-- Occupancy Ring Chart -->
+          <section class="card ring-card" aria-label="Taxa de ocupação">
+            <div class="card-header">
+              <h2 class="card-title">Ocupação Atual</h2>
+            </div>
+            <div class="ring-chart-wrap">
+              <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="ring-bg" cx="60" cy="60" r="50" />
+                <circle class="ring-fill ring-occ" cx="60" cy="60" r="50" id="ring-occ" />
+                <circle class="ring-fill ring-free" cx="60" cy="60" r="50" id="ring-free" />
+              </svg>
+              <div class="ring-center">
+                <span class="ring-pct" id="ring-pct">--%</span>
+                <span class="ring-label">ocupado</span>
+              </div>
+            </div>
+            <div class="ring-legend">
+              <div class="ring-legend-item">
+                <span class="legend-color red"></span>
+                <span>Ocupadas</span>
+                <strong id="ring-occ-num">--</strong>
+              </div>
+              <div class="ring-legend-item">
+                <span class="legend-color green"></span>
+                <span>Livres</span>
+                <strong id="ring-free-num">--</strong>
+              </div>
+            </div>
+          </section>
+
+          <!-- Recent Activity -->
+          <section class="card activity-card" aria-label="Atividade recente">
+            <div class="card-header">
+              <h2 class="card-title">Análises Recentes</h2>
+              <span class="badge-live">AO VIVO</span>
+            </div>
+            <ul class="activity-list" id="activity-list" role="list"></ul>
+          </section>
+        </div>
+      </div>
+
+      <!-- Bottom Row -->
+      <div class="bottom-row">
+        <section class="card chart-card" aria-label="Ocupação por hora">
+          <div class="card-header">
+            <h2 class="card-title">Ocupação por Hora</h2>
+            <div class="card-actions">
+              <button class="btn-pill active" id="chart-today">Hoje</button>
+              <button class="btn-pill" id="chart-week">Semana</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="bar-chart" width="800" height="200" aria-label="Gráfico de barras de ocupação"></canvas>
+          </div>
+        </section>
+
+        <section class="card ai-card" aria-label="Status da inteligência artificial">
+          <div class="card-header">
+            <h2 class="card-title">Status da IA</h2>
+          </div>
+          <div class="ai-metrics">
+            <div class="ai-metric-row">
+              <span class="ai-metric-label">Modelo</span>
+              <span class="ai-metric-value mono">YOLOv8-nano</span>
+            </div>
+            <div class="ai-metric-row">
+              <span class="ai-metric-label">Tempo de inferência</span>
+              <span class="ai-metric-value mono" id="infer-time">12ms</span>
+            </div>
+            <div class="ai-metric-row">
+              <span class="ai-metric-label">Imagens processadas</span>
+              <span class="ai-metric-value mono" id="imgs-processed">0</span>
+            </div>
+            <div class="ai-metric-row">
+              <span class="ai-metric-label">Confiança mín.</span>
+              <span class="ai-metric-value mono">0.75</span>
+            </div>
+          </div>
+          <div class="confidence-bars">
+            <div class="conf-bar-item">
+              <span>Detecção de vaga</span>
+              <div class="conf-bar-track"><div class="conf-bar-fill green" style="width:97%"></div></div>
+              <span class="conf-val">97%</span>
+            </div>
+            <div class="conf-bar-item">
+              <span>Classificação</span>
+              <div class="conf-bar-track"><div class="conf-bar-fill amber" style="width:94%"></div></div>
+              <span class="conf-val">94%</span>
+            </div>
+            <div class="conf-bar-item">
+              <span>Precisão geral</span>
+              <div class="conf-bar-track"><div class="conf-bar-fill blue" style="width:91%"></div></div>
+              <span class="conf-val">91%</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: ANÁLISE DE MÍDIA ===== -->
+    <div class="page" id="page-analysis">
+      <div class="analysis-layout">
+
+        <!-- Upload Panel -->
+        <div class="upload-panel">
+          <div class="card upload-card">
+            <div class="card-header">
+              <h2 class="card-title">Upload de Mídia</h2>
+              <span class="badge-type" id="media-type-badge">Imagem / Vídeo</span>
+            </div>
+
+            <!-- Drop Zone -->
+            <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Arraste uma imagem ou vídeo aqui">
+              <input type="file" id="file-input" accept="image/*,video/*" hidden />
+              <div class="drop-icon">
+                <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="drop-title">Arraste e solte aqui</p>
+              <p class="drop-sub">ou clique para selecionar</p>
+              <div class="drop-types">
+                <span>JPG</span><span>PNG</span><span>MP4</span><span>AVI</span><span>MOV</span>
+              </div>
+            </div>
+
+            <!-- Media Preview -->
+            <div class="media-preview hidden" id="media-preview">
+              <div class="preview-header">
+                <span class="preview-filename" id="preview-filename">arquivo.jpg</span>
+                <button class="btn-clear" id="btn-clear-media" aria-label="Remover arquivo">✕</button>
+              </div>
+              <div class="preview-wrap" id="preview-wrap">
+                <!-- image or video rendered here -->
+              </div>
+              <div class="preview-meta" id="preview-meta"></div>
+              <button class="btn-analyze" id="btn-analyze">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Analisar com IA
+              </button>
+            </div>
+          </div>
+
+          <!-- Video frame selector (only when video loaded) -->
+          <div class="card frame-card hidden" id="frame-card">
+            <div class="card-header">
+              <h2 class="card-title">Selecionar Frame</h2>
+              <span class="mono" id="frame-time-label">00:00</span>
+            </div>
+            <div class="frame-controls">
+              <input type="range" id="frame-scrubber" min="0" max="100" value="0" class="slider" aria-label="Scrubber de vídeo">
+              <div class="frame-btns">
+                <button class="btn-frame" id="btn-prev-frame">‹ Frame anterior</button>
+                <button class="btn-frame active" id="btn-capture-frame">📸 Capturar Frame</button>
+                <button class="btn-frame" id="btn-next-frame">Próximo frame ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Panel -->
+        <div class="result-panel">
+          <div class="card result-card">
+            <div class="card-header">
+              <h2 class="card-title">Resultado da Análise</h2>
+              <div class="card-actions" id="result-actions" style="display:none">
+                <button class="btn-pill active" id="toggle-original">Original</button>
+                <button class="btn-pill" id="toggle-annotated">Anotado</button>
+                <button class="btn-sm" id="btn-save-result" title="Salvar resultado">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div class="result-empty" id="result-empty">
+              <div class="empty-icon">
+                <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" opacity="0.25">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </div>
+              <p>Faça upload de uma imagem ou vídeo<br>e clique em <strong>Analisar com IA</strong></p>
+            </div>
+
+            <!-- Processing state -->
+            <div class="result-processing hidden" id="result-processing">
+              <div class="processing-ring"></div>
+              <p id="processing-label">Processando imagem...</p>
+              <div class="processing-steps" id="processing-steps"></div>
+            </div>
+
+            <!-- Result canvas -->
+            <div class="result-canvas-wrap hidden" id="result-canvas-wrap">
+              <canvas id="result-canvas" aria-label="Imagem com detecções da IA"></canvas>
+              <div class="result-overlay-boxes" id="result-overlay-boxes"></div>
+            </div>
+          </div>
+
+          <!-- Detection summary -->
+          <div class="card detection-summary hidden" id="detection-summary">
+            <div class="card-header">
+              <h2 class="card-title">Resumo da Detecção</h2>
+              <span class="mono" id="detection-timestamp" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+            <div class="detection-stats-grid">
+              <div class="det-stat free">
+                <span class="det-stat-num" id="det-free">0</span>
+                <span class="det-stat-label">Vagas Livres</span>
+              </div>
+              <div class="det-stat occupied">
+                <span class="det-stat-num" id="det-occ">0</span>
+                <span class="det-stat-label">Vagas Ocupadas</span>
+              </div>
+              <div class="det-stat total">
+                <span class="det-stat-num" id="det-total">0</span>
+                <span class="det-stat-label">Total detectado</span>
+              </div>
+              <div class="det-stat conf">
+                <span class="det-stat-num" id="det-conf">0%</span>
+                <span class="det-stat-label">Confiança média</span>
+              </div>
+            </div>
+
+            <!-- Detection list -->
+            <div class="det-list-wrap">
+              <table class="det-list-table" aria-label="Lista de vagas detectadas">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Status</th>
+                    <th>Confiança</th>
+                    <th>Posição (x, y)</th>
+                  </tr>
+                </thead>
+                <tbody id="det-list-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== PAGE: MAP ===== -->
+    <div class="page" id="page-map">
+      <div class="map-container">
+        <div class="map-header">
+          <h2>Mapa do Complexo</h2>
+          <div class="map-legend-full">
+            <span><span class="legend-dot green"></span> Disponível</span>
+            <span><span class="legend-dot red"></span> Ocupada</span>
+            <span><span class="legend-dot yellow"></span> Reservada</span>
+            <span><span class="legend-dot blue"></span> Deficiente</span>
+          </div>
+        </div>
+        <div class="full-map" id="full-map"></div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: HISTORY ===== -->
+    <div class="page" id="page-history">
+      <div class="history-container">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Histórico de Ocupação</h2>
+            <div class="card-actions">
+              <select class="select-styled" id="hist-period" aria-label="Período do histórico">
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="90">Últimos 3 meses</option>
+              </select>
+            </div>
+          </div>
+          <canvas id="history-chart" width="900" height="300" aria-label="Gráfico histórico"></canvas>
+        </div>
+        <div class="card event-log-card">
+          <div class="card-header">
+            <h2 class="card-title">Log de Análises</h2>
+          </div>
+          <table class="event-table" aria-label="Log de análises">
+            <thead>
+              <tr>
+                <th>Horário</th>
+                <th>Arquivo</th>
+                <th>Tipo</th>
+                <th>Livres</th>
+                <th>Ocupadas</th>
+                <th>Confiança</th>
+              </tr>
+            </thead>
+            <tbody id="event-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE: SETTINGS ===== -->
+    <div class="page" id="page-settings">
+      <div class="settings-container">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Configurações da IA</h2></div>
+          <div class="settings-form">
+            <div class="setting-group">
+              <label class="setting-label" for="conf-threshold">Limiar de confiança</label>
+              <div class="slider-wrap">
+                <input type="range" id="conf-threshold" min="50" max="99" value="75" class="slider">
+                <span class="slider-val" id="conf-threshold-val">75%</span>
+              </div>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label" for="scan-interval">Intervalo de re-análise automática</label>
+              <div class="slider-wrap">
+                <input type="range" id="scan-interval" min="1" max="30" value="5" class="slider">
+                <span class="slider-val" id="scan-interval-val">5s</span>
+              </div>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label">Tipos de arquivo aceitos</label>
+              <div class="toggle-list">
+                <label class="toggle-item"><input type="checkbox" checked id="accept-jpg"> <span class="toggle-track"></span> Imagens JPG / PNG / WEBP</label>
+                <label class="toggle-item"><input type="checkbox" checked id="accept-mp4"> <span class="toggle-track"></span> Vídeos MP4 / AVI / MOV</label>
+                <label class="toggle-item"><input type="checkbox" id="accept-batch"> <span class="toggle-track"></span> Upload em lote (múltiplos arquivos)</label>
+              </div>
+            </div>
+            <div class="setting-group">
+              <label class="setting-label" for="notif-toggle">Notificações de lotação</label>
+              <label class="toggle-item"><input type="checkbox" checked id="notif-toggle"> <span class="toggle-track"></span> Alertar quando ocupação &gt; 90%</label>
+            </div>
+            <button class="btn-save" id="btn-save-settings">Salvar Configurações</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
