@@ -32,7 +32,6 @@ env/
 .pytest_cache/
 
 # Modelos e dados grandes
-*.pt
 *.pth
 *.onnx
 *.h5
