@@ -16,6 +16,7 @@ MODEL_PATH = BASE_DIR / "Detector_Vagas" / "best_models" / "best" / "best-modelo
 
 app = Flask(__name__)
 CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200 MB
 
 if not MODEL_PATH.exists():
     raise FileNotFoundError(f"Modelo não encontrado em: {MODEL_PATH}")
